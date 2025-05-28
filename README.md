@@ -33,11 +33,14 @@ Mengembangkan sistem yang mampu:
 
 ### Week 3 (19 - 25 Mei 2025)
 
--
+-   Percobaan rPPG POS dari wajah (branch respiration-and-heartbeat)
 
 ### Week 4 (26 - 30 Mei 2025)
 
--   ***
+-   Implementasi rPPG POS dari wajah untuk detak jantung
+-   Implementasi deteksi respirasi menggunakan bahu
+-   Penggabungan rPPG dan respirasi dalam satu GUI
+-   Penambahan fitur deteksi manual menggunakan tombol pada GUI untuk komparasi hasil secara real-time
 
 ## ⚙️ Instalasi
 
@@ -59,7 +62,8 @@ Mengembangkan sistem yang mampu:
 3. Instal dependensi:
 
     ```bash
-    pip install -r requirements.txt
+    pip install -r requirements.txt # pip
+    uv pip install -r requirements.txt # uv
     ```
 
 4. Jalankan aplikasi:
