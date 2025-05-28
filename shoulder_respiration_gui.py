@@ -12,6 +12,7 @@ from pos import POSProcessor
 from shoulder_detector import ShoulderDetector
 from respiration_processor import RespirationProcessor
 from signal_visualizer import SignalVisualizer
+from manual_detector import ManualDetector
 
 class VideoProcessor(QThread):
     """Thread for processing video frames"""
@@ -120,6 +121,79 @@ class MainWindow(QMainWindow):
         controls_layout.addWidget(self.stop_button)
         left_layout.addLayout(controls_layout)
         
+        # Manual detection section
+        manual_section = QVBoxLayout()
+        manual_title = QLabel("Manual Detection")
+        manual_title.setFont(QFont("Arial", 12, QFont.Bold))
+        manual_title.setStyleSheet("color: darkgreen;")
+        manual_section.addWidget(manual_title)
+        
+        # Manual detection buttons
+        manual_buttons_layout = QHBoxLayout()
+        
+        # Heartbeat tap button
+        self.heartbeat_button = QPushButton("💓 Tap Heartbeat")
+        self.heartbeat_button.setFont(QFont("Arial", 11, QFont.Bold))
+        self.heartbeat_button.setStyleSheet("""
+            QPushButton {
+                background-color: #ff6b6b;
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #ff5252;
+            }
+            QPushButton:pressed {
+                background-color: #e53935;
+            }
+        """)
+        self.heartbeat_button.clicked.connect(self.tap_heartbeat)
+        
+        # Respiration tap button
+        self.respiration_button = QPushButton("🫁 Tap Breathing")
+        self.respiration_button.setFont(QFont("Arial", 11, QFont.Bold))
+        self.respiration_button.setStyleSheet("""
+            QPushButton {
+                background-color: #42a5f5;
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #2196f3;
+            }
+            QPushButton:pressed {
+                background-color: #1976d2;
+            }
+        """)
+        self.respiration_button.clicked.connect(self.tap_respiration)
+        
+        manual_buttons_layout.addWidget(self.heartbeat_button)
+        manual_buttons_layout.addWidget(self.respiration_button)
+        manual_section.addLayout(manual_buttons_layout)
+        
+        # Reset buttons
+        reset_buttons_layout = QHBoxLayout()
+        self.reset_hr_button = QPushButton("Reset HR")
+        self.reset_hr_button.clicked.connect(self.reset_heartbeat)
+        self.reset_rr_button = QPushButton("Reset RR")
+        self.reset_rr_button.clicked.connect(self.reset_respiration)
+        
+        reset_buttons_layout.addWidget(self.reset_hr_button)
+        reset_buttons_layout.addWidget(self.reset_rr_button)
+        manual_section.addLayout(reset_buttons_layout)
+        
+        # Instructions
+        instructions = QLabel("Instructions:\n• Tap 'Heartbeat' with each heartbeat\n• Tap 'Breathing' with each breath cycle")
+        instructions.setFont(QFont("Arial", 9))
+        instructions.setStyleSheet("color: gray;")
+        manual_section.addWidget(instructions)
+        
+        left_layout.addLayout(manual_section)
+        
         # Status labels
         self.status_label = QLabel("Status: Ready")
         self.status_label.setFont(QFont("Arial", 10))
@@ -135,6 +209,9 @@ class MainWindow(QMainWindow):
         # Video processor
         self.video_processor = VideoProcessor()
         self.video_processor.frame_processed.connect(self.update_display)
+        
+        # Manual detector
+        self.manual_detector = ManualDetector()
         
         # Update timer for plots
         self.plot_timer = QTimer()
@@ -211,6 +288,79 @@ class MainWindow(QMainWindow):
                 self.current_heart_rate, 
                 self.current_respiration_rate
             )
+            
+            # Update manual vital signs
+            manual_hr = self.manual_detector.get_manual_heart_rate()
+            manual_rr = self.manual_detector.get_manual_respiration_rate()
+            self.signal_visualizer.update_manual_vital_signs(manual_hr, manual_rr)
+    
+    def tap_heartbeat(self):
+        """Handle manual heartbeat tap"""
+        self.manual_detector.tap_heartbeat()
+        # Visual feedback
+        self.heartbeat_button.setStyleSheet("""
+            QPushButton {
+                background-color: #e53935;
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 5px;
+            }
+        """)
+        # Reset button color after 100ms
+        QTimer.singleShot(100, lambda: self.heartbeat_button.setStyleSheet("""
+            QPushButton {
+                background-color: #ff6b6b;
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #ff5252;
+            }
+            QPushButton:pressed {
+                background-color: #e53935;
+            }
+        """))
+    
+    def tap_respiration(self):
+        """Handle manual respiration tap"""
+        self.manual_detector.tap_respiration()
+        # Visual feedback
+        self.respiration_button.setStyleSheet("""
+            QPushButton {
+                background-color: #1976d2;
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 5px;
+            }
+        """)
+        # Reset button color after 100ms
+        QTimer.singleShot(100, lambda: self.respiration_button.setStyleSheet("""
+            QPushButton {
+                background-color: #42a5f5;
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #2196f3;
+            }
+            QPushButton:pressed {
+                background-color: #1976d2;
+            }
+        """))
+    
+    def reset_heartbeat(self):
+        """Reset manual heartbeat detection"""
+        self.manual_detector.reset_heartbeat()
+    
+    def reset_respiration(self):
+        """Reset manual respiration detection"""
+        self.manual_detector.reset_respiration()
     
     def closeEvent(self, event):
         """Handle application close"""

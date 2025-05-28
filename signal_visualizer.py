@@ -20,6 +20,10 @@ class SignalVisualizer(QWidget):
         
         # Info layout
         info_layout = QHBoxLayout()
+        
+        # Automatic detection labels
+        auto_label = QLabel("Automatic Detection:")
+        auto_label.setFont(QFont("Arial", 11, QFont.Bold))
         self.heart_rate_label = QLabel("Heart Rate: -- BPM")
         self.heart_rate_label.setFont(QFont("Arial", 12, QFont.Bold))
         self.heart_rate_label.setStyleSheet("color: red;")
@@ -28,8 +32,24 @@ class SignalVisualizer(QWidget):
         self.respiration_rate_label.setFont(QFont("Arial", 12, QFont.Bold))
         self.respiration_rate_label.setStyleSheet("color: blue;")
         
+        # Manual detection labels
+        manual_label = QLabel("Manual Detection:")
+        manual_label.setFont(QFont("Arial", 11, QFont.Bold))
+        self.manual_heart_rate_label = QLabel("Manual HR: -- BPM")
+        self.manual_heart_rate_label.setFont(QFont("Arial", 12, QFont.Bold))
+        self.manual_heart_rate_label.setStyleSheet("color: darkred;")
+        
+        self.manual_respiration_rate_label = QLabel("Manual RR: -- BPM")
+        self.manual_respiration_rate_label.setFont(QFont("Arial", 12, QFont.Bold))
+        self.manual_respiration_rate_label.setStyleSheet("color: darkblue;")
+        
+        info_layout.addWidget(auto_label)
         info_layout.addWidget(self.heart_rate_label)
         info_layout.addWidget(self.respiration_rate_label)
+        info_layout.addStretch()
+        info_layout.addWidget(manual_label)
+        info_layout.addWidget(self.manual_heart_rate_label)
+        info_layout.addWidget(self.manual_respiration_rate_label)
         main_layout.addLayout(info_layout)
         
         # Create plots
@@ -143,6 +163,11 @@ class SignalVisualizer(QWidget):
         """Update vital signs display"""
         self.heart_rate_label.setText(f"Heart Rate: {heart_rate:.1f} BPM")
         self.respiration_rate_label.setText(f"Respiration Rate: {respiration_rate:.1f} BPM")
+    
+    def update_manual_vital_signs(self, manual_heart_rate, manual_respiration_rate):
+        """Update manual vital signs display"""
+        self.manual_heart_rate_label.setText(f"Manual HR: {manual_heart_rate:.1f} BPM")
+        self.manual_respiration_rate_label.setText(f"Manual RR: {manual_respiration_rate:.1f} BPM")
     
     def _pad_or_truncate(self, data):
         """Pad or truncate data to fit the display window"""
