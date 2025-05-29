@@ -102,14 +102,15 @@ class POSProcessor:
     def _estimate_heart_rate(self):
         """Estimate heart rate using FFT on filtered signal"""
         if len(self.pos_filtered) < 150:  # Need 5 seconds
+            print(f"Belum cukup data untuk estimasi detak jantung (5 detik).")
             return
         
         # Get 5 seconds of filtered data
-        data = np.array(list(self.pos_filtered)[-150:])
-        data = data - np.mean(data)  # Remove DC
+        data_5sec = np.array(list(self.pos_filtered)[-150:])
+        data_5sec = data_5sec - np.mean(data_5sec)  # Remove DC
         
         # Apply window and FFT
-        windowed = data * np.hanning(len(data))
+        windowed = data_5sec * np.hanning(len(data_5sec))
         fft_vals = np.abs(np.fft.fft(windowed))
         freqs = np.fft.fftfreq(len(windowed), 1/self.fps)
         
