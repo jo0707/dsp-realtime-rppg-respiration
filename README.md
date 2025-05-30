@@ -41,6 +41,7 @@ Mengembangkan sistem yang mampu:
 -   Implementasi deteksi respirasi menggunakan bahu
 -   Penggabungan rPPG dan respirasi dalam satu GUI
 -   Penambahan fitur deteksi manual menggunakan tombol pada GUI untuk komparasi hasil secara real-time
+-   Implementasi Lucas-Kanade Optical Flow untuk deteksi wajah dan bahu
 
 ## ⚙️ Instalasi
 
