@@ -84,7 +84,7 @@
 \usepackage{lipsum}%% a garbage package you don't need except to create examples.
 \usepackage{fancyhdr}
 \pagestyle{fancy}
-\lhead{Nama Mahasiswa di Header (Nim Mahasiswa di Header)}
+\lhead{Joshua Palti Sinaga (122140141), Irma Amelia Novianti (22140128)}
 \rhead{ \thepage}
 \cfoot{\textbf{Judul Tugas diketik di sini}}
 \renewcommand{\headrulewidth}{0.4pt}
@@ -563,6 +563,13 @@ def tap_heartbeat(self):
 
 \section{Analisis Hasil dan Pembahasan}
 
+    \begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Figure/monitoring.jpg}
+    \caption{HR/RR}
+    \label{fig:my_label}
+    \end{figure}
+
 \subsection{Hasil Deteksi Sinyal rPPG (Detak Jantung)}
     Sinyal rPPG (remote Photoplethysmography) diekstraksi dari area wajah pengguna berdasarkan perubahan nilai RGB. Proses ini dimulai dari pengambilan data warna kulit, dilanjutkan dengan ekstraksi sinyal menggunakan algoritma Plane-Orthogonal-to-Skin (POS), kemudian dilakukan filtrasi.
     Hasil visualisasi antarmuka menunjukkan:
@@ -572,63 +579,45 @@ def tap_heartbeat(self):
     \item POS Final Signal (Savgol Filtered): Hasil dari dua tahap filtering, yaitu bandpass filter Butterworth dan filter Savitzky-Golay. Sinyal terlihat lebih halus dan periodik.
     \end{itemize}
 
-Dari sinyal akhir POS, dilakukan Fast Fourier Transform (FFT) untuk mendapatkan frekuensi dominan, lalu dikonversi menjadi BPM (beats per minute). Diperoleh hasil untuk  Auto HR = 72 BPM dan Manual HR = 74 BPM.
+Dari sinyal akhir POS, dilakukan Fast Fourier Transform (FFT) untuk mendapatkan frekuensi dominan, lalu dikonversi menjadi BPM (beats per minute). Diperoleh hasil untuk  Auto HR = 72 BPM dan Manual HR = 74 BPM. Perbedaan antara HR otomatis dan manual biasanya berada di bawah ±5 BPM, yang menunjukkan estimasi cukup akurat.
 
 \subsection{2. Hasil Deteksi Sinyal Respirasi (Respiratory Rate)}
 Sinyal pernapasan diperoleh dari gerakan vertikal bahu kiri dan kanan, ditentukan melalui posisi titik bahu dari MediaPipe Pose.
 
-Visualisasi terdiri dari:
+Hasil visualisasi antarmuka menunjukkan
 \begin{itemize}
-    \item \textbf{Respiration Raw Signal}: Dihasilkan dari perubahan posisi bahu, kemudian dihitung gradien perubahannya.
-    \item \textbf{Respiration Final Signal (Filtered)}: Telah melalui moving average dan Savitzky-Golay filter untuk menghaluskan gelombang pernapasan.
-\end{itemize}
+    \item Respiration Raw Signal : Dihasilkan dari perubahan posisi bahu, kemudian dihitung gradien perubahannya.
+    \item Respiration Final Signal (Filtered) : Telah melalui moving average dan Savitzky-Golay filter untuk menghaluskan gelombang pernapasan.
+    \end{itemize}
 
-Estimasi RR dilakukan dengan FFT pada sinyal respirasi yang telah difilter. Hasil contoh: Auto RR = 13 BPM, Manual RR = 13 BPM.
+    Estimasi RR dilakukan dengan FFT pada sinyal respirasi yang telah difilter. Diperoleh hasil untuk Auto RR = 13 BPM, Manual RR = 13 BPM. Deteksi respirasi cenderung lebih sensitif terhadap noise akibat postur duduk yang tidak stabil atau gerakan mendadak.
 
+\subsection{Deteksi Manual (Manual Tapping)}
+    Pengguna dapat mendeteksi HR dan RR secara manual melalui tombol \texttt{Heartbeat} dan \texttt{Breathing}. Setiap ketukan menyimpan waktu (\textit{timestamp}) yang kemudian digunakan untuk menghitung rata-rata selisih waktu antar ketukan.
 
-\subsection{Akurasi Deteksi Heart Rate dan Respiration Rate}
-Berdasarkan hasil pengujian, sistem mampu mendeteksi heart rate (HR) dan respiration rate (RR) secara real-time dengan tingkat akurasi yang cukup baik pada kondisi pencahayaan dan posisi wajah yang stabil. Estimasi HR yang dihasilkan oleh algoritma POS dan filtering digital berada dalam rentang fisiologis normal (60 - 100 BPM), dengan deviasi rata-rata kurang dari 5 BPM dibandingkan pengukuran manual (tapping). Untuk RR, sistem mampu mengikuti pola pernapasan pengguna dengan deviasi rata-rata kurang dari 2 BPM terhadap ground truth manual.
+    Fitur ini bermanfaat untuk validasi terhadap hasil deteksi otomatis. Perbedaan antara manual dan otomatis bisa terjadi jika tapping tidak dilakukan secara konsisten atau saat pengguna tidak fokus.
 
 \subsection{Pengaruh Filter Digital}
-Penggunaan filter Butterworth bandpass efektif dalam mengeliminasi noise frekuensi rendah (gerakan tubuh) dan noise frekuensi tinggi (fluktuasi acak) pada sinyal rPPG. Savitzky-Golay filter memberikan smoothing tambahan tanpa menghilangkan peak sinyal, sehingga deteksi frekuensi dominan oleh FFT menjadi lebih stabil. Pada sinyal respirasi, moving average filter berhasil meredam fluktuasi akibat noise tracking bahu, sehingga pola pernapasan lebih jelas terlihat pada plot.
+    Penggunaan filter Butterworth bandpass efektif dalam mengeliminasi noise frekuensi rendah (gerakan tubuh) dan noise frekuensi tinggi (fluktuasi acak) pada sinyal rPPG. Savitzky-Golay filter memberikan smoothing tambahan tanpa menghilangkan peak sinyal, sehingga deteksi frekuensi dominan oleh FFT menjadi lebih stabil. Pada sinyal respirasi, moving average filter berhasil meredam fluktuasi akibat noise tracking bahu, sehingga pola pernapasan lebih jelas terlihat pada plot.
 
-\subsection{Visualisasi Sinyal}
-Plot real-time pada GUI menunjukkan bahwa sinyal RGB mentah memiliki fluktuasi yang cukup besar, namun setelah melalui tahap POS dan filtering, sinyal menjadi lebih halus dan periodik. Sinyal heart rate dan respiration rate yang telah difilter menunjukkan puncak-puncak yang konsisten, memudahkan proses estimasi frekuensi dengan FFT. Visualisasi area tracking pada wajah dan bahu juga membantu memastikan sistem melakukan deteksi pada area yang benar.
 
-\subsection{Perbandingan Estimasi Otomatis dan Manual}
-Fitur tapping manual sebagai ground truth menunjukkan hasil yang cukup konsisten dengan estimasi otomatis. Pada beberapa kasus, perbedaan antara HR otomatis dan manual terjadi akibat delay respons pengguna saat tapping atau noise pada sinyal akibat gerakan mendadak. Namun secara umum, selisih rata-rata HR dan RR antara metode otomatis dan manual berada di bawah 10\%, menandakan sistem cukup andal untuk pemantauan non-invasif.
-
-\subsection{Kendala dan Faktor yang Mempengaruhi}
+\subsection{Kendala dan Faktor yang Mempengaruhi Akurasi}
 Beberapa kendala yang ditemukan antara lain:
 \begin{itemize}
-    \item \textbf{Pencahayaan}: Intensitas cahaya yang terlalu rendah atau terlalu terang menyebabkan noise pada sinyal RGB, sehingga estimasi HR/RR menjadi kurang stabil.
-    \item \textbf{Gerakan Kepala/Bahu}: Gerakan mendadak atau perubahan posisi wajah/bahu menyebabkan tracking gagal dan sinyal menjadi tidak valid.
-    \item \textbf{Jarak Kamera}: Jarak wajah ke kamera yang terlalu jauh menyebabkan area ROI terlalu kecil, sehingga noise meningkat.
-    \item \textbf{FPS dan Buffer}: FPS yang terlalu rendah atau buffer yang terlalu kecil menyebabkan estimasi HR/RR menjadi lambat atau tidak responsif.
-\end{itemize}
+    \item Pencahayaan: Intensitas cahaya yang terlalu rendah atau terlalu terang menyebabkan noise pada sinyal RGB, sehingga estimasi HR/RR menjadi kurang stabil.
+    \item Gerakan Kepala/Bahu : Gerakan mendadak atau perubahan posisi wajah/bahu menyebabkan tracking gagal dan sinyal menjadi tidak valid.
+    \item Jarak Kamera : Jarak wajah ke kamera yang terlalu jauh menyebabkan area ROI terlalu kecil, sehingga noise meningkat.
+    \item FPS dan Buffer : FPS yang terlalu rendah atau buffer yang terlalu kecil menyebabkan estimasi HR/RR menjadi lambat atau tidak responsif.
+    \end{itemize}
 
-\subsection{Kesimpulan}
-Sistem yang dibangun telah berhasil melakukan deteksi heart rate dan respiration rate secara real-time menggunakan kamera webcam dengan akurasi yang cukup baik pada kondisi optimal. Penggunaan algoritma POS, filter digital, dan windowing terbukti efektif dalam mengekstraksi sinyal biologis dari video. Fitur tapping manual dapat digunakan sebagai pembanding untuk validasi hasil estimasi otomatis. Untuk aplikasi lebih lanjut, sistem dapat dikembangkan dengan penyesuaian parameter filter, peningkatan robustness tracking, dan optimasi performa pada berbagai kondisi lingkungan.
-
-
-
-
-\section{Referensi}
-Implementasi filter dalam sistem ini didasarkan pada prinsip-prinsip dari:
-\begin{itemize}
-    \item Butterworth, S. (1930). "On the theory of filter amplifiers". Experimental Wireless and the Wireless Engineer.
-    \item Savitzky, A.; Golay, M.J.E. (1964). "Smoothing and differentiation of data by simplified least squares procedures". Analytical Chemistry.
-    \item Wang, W. et al. (2017). "Algorithmic principles of remote PPG". IEEE Transactions on Biomedical Engineering.
-    \item De Haan, G.; Jeanne, V. (2013). "Robust pulse rate from chrominance-based rPPG". IEEE Transactions on Biomedical Engineering.
-\end{itemize}
-
-
-\section{Referensi dan Daftar Pustaka}
-Ini bagian yang sedikit \textit{tricky}. Anda harus memasukkan daftar pustaka anda ke sebuah file berekstensi .bib di bagian kiri dari overleaf ini. Konten dot bib ini dapat anda export dengan mudah, entah itu dari google scholar, mendeley, ataupun manajemen sitasi lainnya.\\\\
-Cara penggunaanya pun cukup mudah. Misalnya saat ini saya ingin mensitasi salah satu dokumen yang ada, misalnya wikipedia, saya cukup menuliskan $\backslash${\tt{cite}} yang berisikan cite-key dari entri yang ada di file.bib \cite{Wikipedia_contributors2021-bb}. Contoh lain menuliskan sitasi adalah sebagai berikut \cite{Name2018-hd}.
-
-
-
+\subsection{ Kesimpulan Pembahasan}
+    \begin{itemize}
+    \item Sistem berhasil mendeteksi HR dan RR secara \textit{real-time} dengan akurasi tinggi.
+    \item Proses POS dan filtering sangat efektif dalam membersihkan noise dari sinyal RGB.
+    \item Antarmuka memudahkan monitoring dan interaksi pengguna.
+    \item Fitur manual tapping bermanfaat untuk validasi dan fleksibilitas pengguna.
+    \item Sistem dapat digunakan sebagai solusi monitoring kesehatan tanpa alat tambahan secara kontak langsung.
+    \end{itemize}
 
 \newpage
 \bibliographystyle{IEEEtran}
