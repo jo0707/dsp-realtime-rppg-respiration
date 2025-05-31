@@ -10,13 +10,21 @@ class SignalProcessor:
         self.buffer_size = buffer_size
         self.min_window = int(1.6 * fps)  # 1.6 seconds for POS
         
+        # Filtering parameters
+        self.heart_rate_low_freq = 0.8
+        self.heart_rate_high_freq = 2.8
+        self.respiration_low_freq = 0.1
+        self.respiration_high_freq = 0.8
+        
+        # Moving window smoothing parameters
+        self.shoulder_smoothing_window = 15  # Window size for shoulder signal smoothing
+        
         # Data buffers
         self.rgb_buffer = deque(maxlen=buffer_size)
         self.pos_raw_buffer = deque(maxlen=buffer_size)
         self.pos_filtered_buffer = deque(maxlen=buffer_size)
         self.pos_savgol_buffer = deque(maxlen=buffer_size)
         self.shoulder_buffer = deque(maxlen=buffer_size)
-        self.shoulder_smoothed_buffer = deque(maxlen=buffer_size)  # New smoothed shoulder buffer
         self.resp_raw_buffer = deque(maxlen=buffer_size)
         self.resp_filtered_buffer = deque(maxlen=buffer_size)
         
@@ -30,9 +38,6 @@ class SignalProcessor:
         self.manual_heart_rate = 0
         self.manual_respiration_rate = 0
         
-        # Shoulder smoothing parameters
-        self.shoulder_moving_avg_window = 5
-        self.outlier_threshold = 2.0  # Standard deviations for outlier detection
     
     def simple_pos_algorithm(self, signal):
         """POS method on CPU using Numpy."""
@@ -129,60 +134,6 @@ class SignalProcessor:
         except:
             return data_array[-1]
     
-    def apply_moving_average(self, data, window_size=5):
-        """Apply moving average filter for smoothing"""
-        if len(data) < window_size:
-            return data[-1] if data else 0
-        
-        data_array = np.array(list(data)[-window_size:])
-        return np.mean(data_array)
-    
-    def remove_outliers(self, value, buffer, threshold=2.0):
-        """Remove outliers using z-score method"""
-        if len(buffer) < 10:
-            return value
-        
-        data_array = np.array(list(buffer)[-20:])  # Use last 20 values for statistics
-        mean_val = np.mean(data_array)
-        std_val = np.std(data_array)
-        
-        if std_val == 0:
-            return value
-        
-        z_score = abs(value - mean_val) / std_val
-        
-        # If outlier detected, use median of recent values
-        if z_score > threshold:
-            return np.median(data_array[-5:])
-        
-        return value
-    
-    def smooth_shoulder_signal(self, shoulder_y):
-        """Enhanced shoulder signal smoothing with multiple filtering stages"""
-        if shoulder_y is None:
-            return None
-        
-        # Stage 1: Outlier removal
-        cleaned_value = self.remove_outliers(shoulder_y, self.shoulder_buffer, self.outlier_threshold)
-        
-        # Stage 2: Add to buffer for further processing
-        temp_buffer = list(self.shoulder_buffer) + [cleaned_value]
-        
-        # Stage 3: Moving average smoothing
-        if len(temp_buffer) >= self.shoulder_moving_avg_window:
-            smoothed_value = self.apply_moving_average(temp_buffer, self.shoulder_moving_avg_window)
-        else:
-            smoothed_value = cleaned_value
-        
-        # Stage 4: Additional Savitzky-Golay smoothing if we have enough data
-        temp_smoothed_buffer = list(self.shoulder_smoothed_buffer) + [smoothed_value]
-        if len(temp_smoothed_buffer) >= 11:
-            final_smoothed = self.apply_savgol_filter(temp_smoothed_buffer, 11, 3)
-        else:
-            final_smoothed = smoothed_value
-        
-        return final_smoothed
-    
     def estimate_heart_rate(self):
         """Estimate heart rate using FFT"""
         if len(self.pos_savgol_buffer) < 150:
@@ -198,7 +149,7 @@ class SignalProcessor:
         pos_freqs = freqs[:len(freqs)//2]
         pos_fft = fft_vals[:len(fft_vals)//2]
         
-        hr_mask = (pos_freqs >= 0.7) & (pos_freqs <= 4.0)
+        hr_mask = (pos_freqs >= self.heart_rate_low_freq) & (pos_freqs <= self.heart_rate_high_freq)
         if np.any(hr_mask):
             hr_freqs = pos_freqs[hr_mask]
             hr_power = pos_fft[hr_mask]
@@ -248,7 +199,7 @@ class SignalProcessor:
                     
                     # Bandpass filter
                     if len(self.pos_raw_buffer) >= 30:
-                        pos_filtered = self.bandpass_filter(self.pos_raw_buffer, 0.8, 2.8)
+                        pos_filtered = self.bandpass_filter(self.pos_raw_buffer, self.heart_rate_low_freq, self.heart_rate_high_freq)
                         self.pos_filtered_buffer.append(pos_filtered)
                         
                         # Savitzky-Golay filter
@@ -261,44 +212,37 @@ class SignalProcessor:
                                 self.estimate_heart_rate()
     
     def process_shoulder_signal(self, shoulder_y):
-        """Process shoulder movement for respiration with enhanced smoothing"""
+        """Process shoulder movement for respiration with moving window smoothing"""
         if shoulder_y is not None:
-            # Apply enhanced smoothing to the shoulder signal
-            smoothed_shoulder_y = self.smooth_shoulder_signal(shoulder_y)
-            
-            # Add both raw and smoothed values to their respective buffers
             self.shoulder_buffer.append(shoulder_y)
-            if smoothed_shoulder_y is not None:
-                self.shoulder_smoothed_buffer.append(smoothed_shoulder_y)
             
-            # Use smoothed buffer for respiration processing if available
-            buffer_to_use = self.shoulder_smoothed_buffer if len(self.shoulder_smoothed_buffer) >= 30 else self.shoulder_buffer
-            
-            # Respiration processing with smoothed signals
-            if len(buffer_to_use) >= 30:
-                y_window = np.array(list(buffer_to_use)[-30:])
-                if len(y_window) > 1:
-                    # Calculate movement using a more robust method
-                    # Use gradient for smoother derivative calculation
-                    movement_gradient = np.gradient(y_window)
-                    movement = np.mean(movement_gradient)
+            # Calculate raw respiration signal from smoothed shoulder movement
+            if len(self.shoulder_buffer) >= 30:
+                    # Use smoothed values for movement calculation
+                    y_window = np.array(list(self.shoulder_buffer)[-30:])
                     
-                    # Additional smoothing on the movement signal itself
-                    self.resp_raw_buffer.append(movement)
+                    # Apply moving window smoothing to the entire window for better signal quality
+                    smoothed_window = []
+                    for i in range(len(y_window)):
+                        start_idx = max(0, i - self.shoulder_smoothing_window // 2)
+                        end_idx = min(len(y_window), i + self.shoulder_smoothing_window // 2 + 1)
+                        smoothed_window.append(np.mean(y_window[start_idx:end_idx]))
                     
-                    # Enhanced respiration filtering
-                    if len(self.resp_raw_buffer) >= 60:
-                        # Apply bandpass filter first
-                        resp_filtered = self.bandpass_filter(self.resp_raw_buffer, 0.08, 0.7)  # Slightly wider frequency range
+                    smoothed_window = np.array(smoothed_window)
+                    
+                    if len(smoothed_window) > 1:
+                        # Calculate movement using gradient on smoothed signal
+                        movement = np.mean(np.gradient(smoothed_window))
+                        self.resp_raw_buffer.append(movement)
                         
-                        # Apply Savitzky-Golay filter with optimized parameters for respiration
-                        resp_filtered = self.apply_savgol_filter(self.resp_raw_buffer, 15, 3)  # Adjusted window and polynomial order
-                        
-                        self.resp_filtered_buffer.append(resp_filtered)
-                        
-                        # Update respiration rate every 2 seconds
-                        if len(self.resp_filtered_buffer) % (self.fps * 2) == 0:
-                            self.estimate_respiration_rate()
+                        # Apply bandpass filter
+                        if len(self.resp_raw_buffer) >= 30:
+                            resp_filtered = self.bandpass_filter(self.resp_raw_buffer, self.respiration_low_freq, self.respiration_high_freq)
+                            self.resp_filtered_buffer.append(resp_filtered)
+                            
+                            # Update respiration rate every 2 seconds
+                            if len(self.resp_filtered_buffer) % (self.fps * 2) == 0:
+                                self.estimate_respiration_rate()
     
     def tap_heartbeat(self):
         """Manual heartbeat tap"""

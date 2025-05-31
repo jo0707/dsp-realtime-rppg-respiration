@@ -11,7 +11,7 @@ class CameraProcessor:
         self.frame_count = 0
         self.start_time = time.time()
         self.current_fps = 0
-        self.fps_update_interval = 30  # Update FPS every 30 frames
+        self.fps_update_interval = fps  # Update FPS every fps frames
 
         # Lucas-Kanade tracking variables
         self.lk_params = dict(winSize=(15, 15),
@@ -22,8 +22,6 @@ class CameraProcessor:
         self.face_points = None
         self.prev_gray = None
         self.face_tracked = False
-        self.detection_interval = 200  # Re-detect face every 30 frames
-        self.frame_since_tracking = 0
 
         # Shoulder tracking variables
         self.shoulder_points = None
@@ -145,21 +143,16 @@ class CameraProcessor:
 
     def detect_face(self, frame):
         """Improved face detection with Lucas-Kanade tracking"""
-        self.frame_since_tracking += 1
 
         # Re-detect if tracking failed
         if not self.face_tracked:
-            if self.detect_face_initial(frame):
-                self.frame_since_tracking = 0
-            else:
-                self.face_tracked = False
+            self.face_tracked = self.detect_face_initial(frame)
+            if not self.face_tracked:
                 return None, None, None
         else:
             roi_coords = self.track_face_lk(frame)
             if roi_coords is None:
-                # Tracking failed, force re-detection
                 self.face_tracked = False
-                self.frame_since_tracking = self.detection_interval
                 return None, None, None
 
             x_min, y_min, x_max, y_max = roi_coords
@@ -175,9 +168,7 @@ class CameraProcessor:
 
                 # Draw face ROI and tracking points
                 cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
-                cv2.putText(frame, "Face Tracked (LK)", (x_min, y_min-10),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-
+                
                 # Draw tracking points
                 for point in self.face_points:
                     x, y = point.ravel()
