@@ -61,4 +61,4 @@ Mengembangkan sistem yang mampu:
 
 ## 📚 Laporan 
 Berikut ini adalah laporan program yang kami buat:
-[Laporan](https://www.overleaf.com/read/fffpwtswrmvj#411fc5)
+[Laporan](https://github.com/jo0707/dsp-realtime-rppg-respiration/blob/main/report/Laporan_Akhir_Tugas_Besar_DSP.pdf)
