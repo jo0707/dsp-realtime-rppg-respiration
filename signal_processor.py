@@ -5,7 +5,7 @@ from scipy import signal
 from scipy.signal import savgol_filter
 
 class SignalProcessor:
-    def __init__(self, fps=30, buffer_size=300):
+    def __init__(self, fps=20, buffer_size=200):
         self.fps = fps
         self.buffer_size = buffer_size
         self.min_window = int(1.6 * fps)  # 1.6 seconds for POS
@@ -115,6 +115,8 @@ class SignalProcessor:
         low = max(low, 0.01)
         high = min(high, 0.99)
         
+        print(f"Applying bandpass filter: low={low}, high={high}, data length={len(data_array)}")
+        
         try:
             b, a = signal.butter(3, [low, high], btype='band')
             filtered = signal.filtfilt(b, a, data_array)
@@ -171,7 +173,7 @@ class SignalProcessor:
         pos_freqs = freqs[:len(freqs)//2]
         pos_fft = fft_vals[:len(fft_vals)//2]
         
-        resp_mask = (pos_freqs >= 0.1) & (pos_freqs <= 0.8)
+        resp_mask = (pos_freqs >= self.respiration_low_freq) & (pos_freqs <= self.respiration_high_freq)
         if np.any(resp_mask):
             resp_freqs = pos_freqs[resp_mask]
             resp_power = pos_fft[resp_mask]

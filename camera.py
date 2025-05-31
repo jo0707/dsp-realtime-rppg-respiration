@@ -4,8 +4,9 @@ import mediapipe as mp
 import time
 
 class CameraProcessor:
-    def __init__(self, fps=30):
+    def __init__(self, camera_index=0, fps=30):
         self.fps = fps
+        self.camera_index = camera_index
 
         # FPS tracking
         self.frame_count = 0

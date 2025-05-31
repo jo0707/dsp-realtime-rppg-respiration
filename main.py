@@ -9,11 +9,13 @@ def main():
     app = QApplication(sys.argv)
     
     # Initialize components
+    # change this to your desired settings
     fps = 20
     buffer_size = 200
+    camera_index = 0
     
     # Create processor instances
-    camera_processor = CameraProcessor(fps=fps)
+    camera_processor = CameraProcessor(camera_index=camera_index, fps=fps)
     signal_processor = SignalProcessor(fps=fps, buffer_size=buffer_size)
     
     # Create and show main window

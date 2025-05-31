@@ -171,27 +171,6 @@ class MainWindow(QMainWindow):
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_frame)
 
-    # Fungsi saat tombol Start ditekan  
-    def start_monitoring(self):
-        self.cap = cv2.VideoCapture(0)
-        self.timer.start(33)
-        self.start_btn.setEnabled(False)
-        self.start_btn.setStyleSheet("background-color: #a5d6a7; color: white; transition: all 0.3s ease;")
-        self.stop_btn.setEnabled(True)
-        self.stop_btn.setStyleSheet("background-color: #f44336; color: white;")
-        self.status_label.setText("Status: Monitoring...")
-
-    # Fungsi saat tombol Stop ditekan
-    def stop_monitoring(self):
-        self.timer.stop()
-        if self.cap:
-            self.cap.release()
-        self.start_btn.setEnabled(True)
-        self.start_btn.setStyleSheet("background-color: #4caf50; color: white;")
-        self.stop_btn.setEnabled(False)
-        self.stop_btn.setStyleSheet("background-color: #ef9a9a; color: white; transition: all 0.3s ease;")
-        self.status_label.setText("Status: Ready")
-
     # Setup semua plot
     def setup_plots(self):
         # RGB plot
@@ -234,20 +213,24 @@ class MainWindow(QMainWindow):
 
     def start_monitoring(self):
         """Start monitoring"""
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture(self.camera_processor.camera_index)
         self.cap.set(cv2.CAP_PROP_FPS, self.camera_processor.fps)
         self.timer.start(33)  # ~30 FPS
         self.start_btn.setEnabled(False)
+        self.start_btn.setStyleSheet("background-color: #a5d6a7; color: white; transition: all 0.3s ease;")
         self.stop_btn.setEnabled(True)
+        self.stop_btn.setStyleSheet("background-color: #f44336; color: white;")
         self.status_label.setText("Status: Monitoring...")
-        
+            
     def stop_monitoring(self):
         """Stop monitoring"""
         self.timer.stop()
         if self.cap:
             self.cap.release()
         self.start_btn.setEnabled(True)
+        self.start_btn.setStyleSheet("background-color: #4caf50; color: white;")
         self.stop_btn.setEnabled(False)
+        self.stop_btn.setStyleSheet("background-color: #ef9a9a; color: white; transition: all 0.3s ease;")
         self.status_label.setText("Status: Ready")
 
     # Perbarui frame video dan data sinyal
